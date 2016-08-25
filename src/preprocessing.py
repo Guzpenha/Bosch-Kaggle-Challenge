@@ -8,7 +8,7 @@ def tozero(a):
 
 #rows, columns = 10, 100
 
-file = open('datasets/train_numeric.csv')
+file = open('../data/test_numeric.csv')
 
 csvreader = csv.reader(file)
 next(csvreader, None)
@@ -41,4 +41,4 @@ columns = []
 
 from sklearn.datasets import dump_svmlight_file
 
-dump_svmlight_file(matrix[:,:-1], matrix[:,-1].toarray().ravel(), "datasets/train_numeric.svm")
+dump_svmlight_file(matrix[:,:-1], matrix[:,-1].toarray().ravel(), "../data/test_numeric.svm")
