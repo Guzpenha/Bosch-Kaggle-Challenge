@@ -6,39 +6,85 @@ from scipy import sparse
 def tozero(a):
 	return 0 if a == '' else float(a) 
 
-#rows, columns = 10, 100
+def load_dataset(file_name, batch = 1000, no_label = False):
+	file = open(file_name)
 
-file = open('../data/test_numeric.csv')
-
-csvreader = csv.reader(file)
-next(csvreader, None)
-rows = []
-columns = []
-data = []
-row = 0
-
-matrix = []
-for line in csvreader:
-	d = np.array(line, dtype=str)
-	c = np.where(d != '')[0]
-	#matrix.append(d[c].astype(float))
-	rows.append(np.repeat(row, c.shape[0] - 1))
-	columns.append(c[1:] - 1)
-	data.append(d[c[1:]].astype(float))
+	csvreader = csv.reader(file)
 	
-	row = row + 1
-	if(row%100000 == 0):
-		break
+	# ignore headers
+	next(csvreader, None)
+	
+	rows = []
+	columns = []
+	data = []
+	row = 0
 
-data = np.concatenate(data)
-rows = np.concatenate(rows)
-columns = np.concatenate(columns)
-matrix = sparse.coo_matrix((data, (rows, columns))).tocsc()
+	srow = np.ndarray(0)
+	scol = np.ndarray(0)
+	sdata = np.ndarray(0)
 
-data = []
-rows = []
-columns = []
+	matrix = None
+	label = []
+	i = 0
+	for line in csvreader:
+		d = np.array(line, dtype=str)
+		
+		c = np.where(d != '')[0]
+		
+		if no_label:
+			dim = d.shape[0] - 1
+			rows.append(np.repeat(row, c.shape[0] - 1))
+			columns.append(c[1:] - 1)
+			data.append(d[c[1:]].astype(float))
+		else:
+			dim = d.shape[0] - 2
+			rows.append(np.repeat(row, c.shape[0] - 2))
+			columns.append(c[1:-1] - 1)
+			data.append(d[c[1:-1]].astype(float))	
+			label.append(int(d[-1]))	
 
-from sklearn.datasets import dump_svmlight_file
+		row = row + 1
 
-dump_svmlight_file(matrix[:,:-1], matrix[:,-1].toarray().ravel(), "../data/test_numeric.svm")
+		if(row%batch == 0):
+			rows = np.concatenate(rows)
+			
+			#columns.append(scol)
+			columns = np.concatenate(columns)
+			
+			#data.append(sdata)
+			data = np.concatenate(data)
+
+			if matrix is None:
+				matrix = sparse.csr_matrix((data, (rows, columns)), (batch, dim))
+			else:
+				matrix = sparse.vstack((matrix, sparse.csr_matrix((data, (rows, columns)), (batch, dim))))
+			
+			# cleaning data 
+			rows = []
+			columns = []
+			data = []
+			
+			print(i)
+			row = 0
+			i = i + 1
+
+	if(not row == 0):
+		rows = np.concatenate(rows)
+		columns = np.concatenate(columns)
+		data = np.concatenate(data)
+
+		if matrix is None:
+			matrix = sparse.csr_matrix((data, (rows, columns)), (row, dim))
+		else:
+			matrix = sparse.vstack((matrix, sparse.csr_matrix((data, (rows, columns)), (row, dim))))
+
+		# cleaning data 
+		rows = []
+		columns = []
+		data = []
+
+	if no_label:
+		return matrix
+
+	return matrix, np.asarray(label)
+
