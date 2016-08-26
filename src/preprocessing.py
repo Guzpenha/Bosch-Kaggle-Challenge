@@ -86,5 +86,6 @@ def load_dataset(file_name, batch = 1000, no_label = False):
 	if no_label:
 		return matrix
 
+
 	return matrix, np.asarray(label)
 
