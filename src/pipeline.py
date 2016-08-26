@@ -50,4 +50,4 @@ X_train = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label 
 # Predicting test data and saving it for submission
 df = pd.read_csv("../data/sample_submission.csv")
 df['Response'] = best_model.predict(X_train)
-df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0])
+df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)
