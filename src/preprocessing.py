@@ -35,12 +35,12 @@ def load_dataset(file_name, batch = 1000, no_label = False):
 			dim = d.shape[0] - 1
 			rows.append(np.repeat(row, c.shape[0] - 1))
 			columns.append(c[1:] - 1)
-			data.append(d[c[1:]].astype(float))
+			data.append(d[c[1:]].astype(np.float16))
 		else:
 			dim = d.shape[0] - 2
 			rows.append(np.repeat(row, c.shape[0] - 2))
 			columns.append(c[1:-1] - 1)
-			data.append(d[c[1:-1]].astype(float))	
+			data.append(d[c[1:-1]].astype(np.float16))	
 			label.append(int(d[-1]))	
 
 		row = row + 1
@@ -87,7 +87,7 @@ def load_dataset(file_name, batch = 1000, no_label = False):
 		return matrix
 
 
-	return matrix, np.asarray(label)
+	return matrix, np.asarray(label, dtype=int)
 
 def predict_batch(estimator, file_name, batch=10000):
 	file = open(file_name)
@@ -118,7 +118,7 @@ def predict_batch(estimator, file_name, batch=10000):
 		dim = d.shape[0] - 1
 		rows.append(np.repeat(row, c.shape[0] - 1))
 		columns.append(c[1:] - 1)
-		data.append(d[c[1:]].astype(float))
+		data.append(d[c[1:]].astype(np.float16))
 
 		row = row + 1
 
