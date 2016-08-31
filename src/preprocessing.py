@@ -5,6 +5,34 @@ from scipy import sparse
 
 import re
 
+def extract_missing(X, header):
+	# removing suffix related to feature
+	# we are assuming that once the part reaches a station in a given line
+	# the pair <line,station> was used
+	no_suffix = np.array([re.sub(r'\_F\d+', '', head) for head in header])
+
+	# get the unique pair <line,station> and their occurance
+	unique, counts = np.unique(no_prefix, return_counts=True)
+	
+	# np.unique function sorts by charecters order, but we also want
+	# to keep the order of the station (e.g. S2 comes right after S1, if we
+	# keep the np.unique order after S1 will come S10)
+	# in order to achieve what we want we use a stable sort method such as merge
+	# and sort by the size of the string
+	order = np.argsort([len(s) for s in unique], kind='merge')
+	
+	# resorting accordly to the explanation above
+	unique, counts = unique[order], counts[order]
+	
+	# getting the initial colunms of each pair <line,station>
+	cols = np.concatenate(([0], np.cumsum(counts)[:-1]))
+	
+	# binary matrix of patterns
+	pattern = X[:, cols]
+	pattern.data = np.ones(pattern.data.shape)
+	
+	return pattern
+
 def tozero(a):
 	return 0 if a == '' else float(a)
 
