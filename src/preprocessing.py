@@ -3,8 +3,10 @@ import numpy as np
 import csv
 from scipy import sparse
 
+import re
+
 def tozero(a):
-	return 0 if a == '' else float(a) 
+	return 0 if a == '' else float(a)
 
 def load_dataset(file_name, batch = 1000, no_label = False):
 	file = open(file_name)
@@ -181,7 +183,7 @@ def onehot(X):
 
 class SparseOneHotEncoder(TransformerMixin):
 	def __init__(self):
-		super(SparseOneHotEnconder, self).__init__()
+		super(SparseOneHotEncoder, self).__init__()
 	def fit(self, X, y=None):
 		n_samples, n_features = X.shape
 		# count the number of passible categorical values per feature
@@ -197,13 +199,16 @@ class SparseOneHotEncoder(TransformerMixin):
 		for j, cats in enumerate(self.categories):
 			# find the matches
 			cols = np.where(X.data[X.indptr[j]:X.indptr[j+1]] == cats[:, np.newaxis])
+			rows = X.indices[X.indptr[j]:X.indptr[j+1]]
 			if len(cols) == 2:
+				# ignore rows which categorical value does not exist in training set
+				rows = rows[np.sort(cols[1])]
 				# sort by column ids
 				cols = cols[0][np.argsort(cols[1])]
 			else:
 				cols = cols[0]
 			# insert into the sparse matrix
-			result[X.indices[X.indptr[j]:X.indptr[j+1]], j + n_features_sofar + cols] = 1
+			result[rows, j + n_features_sofar + cols] = 1
 			n_features_sofar = n_features_sofar + cats.shape[0] - 1
 		# convert to csr format and return		
 		return result.tocsr()
@@ -213,9 +218,9 @@ if __name__ == '__main__':
 	X = sparse.csc_matrix([[0, 0, 3], [1, 1, 0], [0, 2, 1], [1, 0, 2], [0, 1, 3]])
 	enc.fit(X)
 
-
 	print(X.toarray())
-	X_t = enc.transform(X)
+
+	X_t = enc.transform(sparse.csc_matrix([[0, 0, 3], [1, 1, 0], [0, 2, 1], [1, 0, 4], [0, 1, 3]]))
 	print(X_t.toarray())
 
 	print(X.nnz)
