@@ -10,6 +10,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 
+from sklearn.cross_validation import train_test_split
+
 import pandas as pd
 import numpy as np
 
@@ -18,22 +20,23 @@ import preprocessing as pre
 import xgboost as xgb
 
 
+
 def score_mmc(estimator, X, y):
-	print(estimator.predict(X))
-	print(y)
 	return matthews_corrcoef(estimator.predict(X), y)
 
 if __name__ == "__main__":
 
 	parser = OptionParser()
-	parser.add_option("-p","--make_predictions",help="make predictions to file.",default = False)
+	parser.add_option("-p","--make_predictions", help="make predictions to file.",default = False)
 	args = parser.parse_args()[0]
 
-	seed = 1234
+	seed = 42
 	np.random.seed(seed)
 
 	# Loading datasets with i = 100000
 	X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
+
+	X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
 	y0_idx = np.where(y_train == 0)[0]
 	y1_idx = np.where(y_train == 1)[0]
@@ -45,13 +48,13 @@ if __name__ == "__main__":
 	X_train, y_train = X_train[idx], y_train[idx]
 
 	# Defining pipeline and params
-	rf = RandomForestClassifier(n_estimators=100, n_jobs=-1, class_weight="balanced_subsample", random_state=seed)
+	rf = RandomForestClassifier(n_estimators=50, n_jobs=-1, random_state=42)
 
-	xboost = xgb.XGBClassifier()
+	xboost = xgb.XGBClassifier(max_depth=100, n_estimators=200)
 
 	pipeline = Pipeline(steps=[('rf', rf)])
 	params = {
-		#"rf__max_features" : ['log2', 'sqrt', 0.08, 0.15, 0.3, 0.7, 1.0]
+		"rf__max_features" : ['log2', 'sqrt', 0.08, 0.15, 0.3, 0.7, 1.0]
 		#"boost__learning_rate" : [0.1, 0.3, 0.7, 1.0]
 	}
 	cv = GridSearchCV(pipeline, params, scoring=score_mmc, verbose=5)
@@ -59,6 +62,8 @@ if __name__ == "__main__":
 	# Fitting  CV
 	cv.fit(X_train, y_train)
 	best_model = cv.best_estimator_
+
+	print(score_mmc(cv, X_test, y_test))
 
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):
