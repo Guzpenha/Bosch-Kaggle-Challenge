@@ -1,3 +1,4 @@
+from IPython import embed
 import numpy as np
 
 import csv
@@ -36,7 +37,99 @@ def extract_missing(X, header):
 def tozero(a):
 	return 0 if a == '' else float(a)
 
-def load_dataset(file_name, batch = 1000, no_label = False):
+def load_date_features(file_name, batch = 100000):
+	file = open(file_name)
+	csvreader = csv.reader(file)
+	
+	headers = next(csvreader, None)
+	
+	headers_mappings = {}
+	headers_key_values = {}
+	count_header_groups = 0
+	for i,h in enumerate(headers):
+		if(h!="Id"):
+			group ='_'.join(h.split("_")[0:-1])			
+			if(group in headers_mappings):
+				headers_mappings[group][1] = i
+			else:
+				headers_key_values[group] = count_header_groups
+				count_header_groups+=1
+				headers_mappings[group] = [0,0]
+				headers_mappings[group][0] = i
+				headers_mappings[group][1] = i	
+	# print(headers_mappings)
+	rows = []
+	columns = []
+	data = []
+	dim = len(headers_mappings)		
+	matrix = None
+	row = 0
+	i = 0
+
+	for line in csvreader:
+		d = np.array(line, dtype=str)
+		c = np.where(d != '')[0]
+		done_ranges = {}
+		for non_missing_index in c:
+			if(non_missing_index != 0):
+				group = '_'.join(headers[non_missing_index].split("_")[0:-1])
+				if(group not in done_ranges):			
+					group_features = d[headers_mappings[group][0]:headers_mappings[group][1]]
+					features_values = [float(f) for f in group_features if f !=""]				
+					if len(features_values) !=0:											
+						# print("time-spent: " + str(max(features_values)-min(features_values)))
+						done_ranges[group] = max(features_values)-min(features_values)
+		# print(done_ranges)
+		rows.append(np.repeat(row, len(done_ranges.keys())))
+		# print(np.repeat(row, len(done_ranges.keys())))		
+		columns.append(np.array([headers_key_values[x] for x in done_ranges.keys()]))
+		# print(np.array([headers_key_values[x] for x in done_ranges.keys()]))
+		data.append([done_ranges[g] for g in done_ranges.keys()])
+		# print([done_ranges[g] for g in done_ranges.keys()])
+		row+=1
+
+		if(row%batch == 0):
+			rows = np.concatenate(rows)
+			
+			#columns.append(scol)
+			columns = np.concatenate(columns)
+			
+			#data.append(sdata)
+			data = np.concatenate(data)
+
+			if matrix is None:
+				matrix = sparse.csr_matrix((data, (rows, columns)), (batch, dim))
+			else:
+				matrix = sparse.vstack((matrix, sparse.csr_matrix((data, (rows, columns)), (batch, dim))))
+			
+			# cleaning data 
+			rows = []
+			columns = []
+			data = []
+			
+			print(i)
+			row = 0
+			i = i + 1
+
+	if(not row == 0):
+		rows = np.concatenate(rows)
+		columns = np.concatenate(columns)
+		data = np.concatenate(data)
+
+		if matrix is None:
+			matrix = sparse.csr_matrix((data, (rows, columns)), (row, dim))
+		else:
+			matrix = sparse.vstack((matrix, sparse.csr_matrix((data, (rows, columns)), (row, dim))))
+
+		# cleaning data 
+		rows = []
+		columns = []
+		data = []
+
+	return matrix
+
+
+def load_dataset(file_name, batch = 10000, no_label = False):
 	file = open(file_name)
 
 	csvreader = csv.reader(file)

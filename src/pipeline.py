@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
+from scipy.sparse import csr_matrix, hstack 
 
 from sklearn.cross_validation import train_test_split
 
@@ -35,6 +36,7 @@ if __name__ == "__main__":
 
 	# Loading datasets with i = 100000
 	X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
+	# X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
 
 	X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
@@ -42,14 +44,16 @@ if __name__ == "__main__":
 	y1_idx = np.where(y_train == 1)[0]
 	np.random.shuffle(y0_idx)
 
-	idx = np.concatenate((y1_idx, y0_idx[:(10*y1_idx.shape[0])]))
 
 	# I'm doing this in order to save memory (the ideal it is not that hehe)
-	X_train, y_train = X_train[idx], y_train[idx]
+	idx = np.concatenate((y1_idx, y0_idx[:(10*y1_idx.shape[0])]))
+
+	X_train, y_train = hstack(X_train[idx,],X_date[idx]), y_train[idx]
+	# X_train, y_train = X_date[idx],y_train[idx]
+	# X_train, y_train = hstack((X_train[idx],X_date[idx])),y_train[idx]
 
 	# Defining pipeline and params
 	rf = RandomForestClassifier(n_estimators=50, n_jobs=-1, random_state=42)
-
 	xboost = xgb.XGBClassifier(max_depth=100, n_estimators=200)
 
 	pipeline = Pipeline(steps=[('rf', rf)])
