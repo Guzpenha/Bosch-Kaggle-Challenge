@@ -65,6 +65,7 @@ if __name__ == "__main__":
 	header = next(csvreader, None)
 
 	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
+	del X_train_cat
 
 	X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
@@ -102,8 +103,10 @@ if __name__ == "__main__":
 	if(args.make_predictions):
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = scipy.io.mmread('../data/test_categorical')
-		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat))
+		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
 		
+		del X_board_cat
+
 		df = pd.read_csv("../data/sample_submission.csv")
 		df['Response'] = best_model.predict(X_board)
 		df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)
