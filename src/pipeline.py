@@ -1,4 +1,6 @@
-from IPython import embedfrom optparse import OptionParser
+from IPython import embed
+from sklearn.cross_validation import train_test_split
+from optparse import OptionParser
 
 from sklearn.datasets import load_svmlight_file
 from sklearn.pipeline import Pipeline
@@ -10,7 +12,6 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from scipy.sparse import csr_matrix, hstack
 from scipy.io import mmread
-from sklearn.cross_validation import train_test_split
 
 import pandas as pd
 import numpy as np
@@ -19,18 +20,6 @@ import preprocessing as pre
 
 import xgboost as xgb
 
-from optparse import OptionParser
-
-from sklearn.datasets import load_svmlight_file
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.grid_search import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier
-
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from scipy.sparse import csr_matrix, hstack 
-from scipy.io import mmread
 from sklearn.cross_validation import train_test_split
 
 import pandas as pd
@@ -58,7 +47,7 @@ if __name__ == "__main__":
 	# Loading datasets with i = 100000
 	X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
 	X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
-	X_train_cat = scipy.io.mmread('../data/train_categorical')
+	X_train_cat = mmread('../data/train_categorical')
 
 
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
@@ -103,7 +92,7 @@ if __name__ == "__main__":
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
-		X_board_cat = scipy.io.mmread('../data/test_categorical')
+		X_board_cat = mmread('../data/test_categorical')
 		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)
 		X_board = scipy.sparse.hstack(((X_board, extract_missing(X_board, header[1:-1]), X_board_cat),X_board_date)).tocsr()
 		
