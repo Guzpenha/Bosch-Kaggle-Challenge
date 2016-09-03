@@ -11,9 +11,9 @@ def extract_missing(X, header):
 	# we are assuming that once the part reaches a station in a given line
 	# the pair <line,station> was used
 	no_suffix = np.array([re.sub(r'\_F\d+', '', head) for head in header])
-
+	
 	# get the unique pair <line,station> and their occurance
-	unique, counts = np.unique(no_prefix, return_counts=True)
+	unique, counts = np.unique(no_suffix, return_counts=True)
 	
 	# np.unique function sorts by charecters order, but we also want
 	# to keep the order of the station (e.g. S2 comes right after S1, if we
