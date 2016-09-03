@@ -40,9 +40,10 @@ import preprocessing as pre
 
 import xgboost as xgb
 
+import csv
+from scipy import sparse
 
-
-def score_mmc(estimator, X, y):
+def score_mcc(estimator, X, y):
 	return matthews_corrcoef(estimator.predict(X), y)
 
 if __name__ == "__main__":
@@ -56,12 +57,14 @@ if __name__ == "__main__":
 
 	# Loading datasets with i = 100000
 	X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
-	
-	#X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)	   
-	#X_categorical = mmread("../data/train_categorical.mtx")
-	
-	#X_train = hstack(X_train,X_date)
-	#X_train = hstack(X_train,X_categorical)
+
+	X_train_cat = scipy.io.mmread('../data/train_categorical')
+
+
+	csvreader = csv.reader(open("../data/train_numeric.csv"))
+	header = next(csvreader, None)
+
+	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
 
 	X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
@@ -69,32 +72,38 @@ if __name__ == "__main__":
 	y1_idx = np.where(y_train == 1)[0]
 	np.random.shuffle(y0_idx)
 
+	idx = np.concatenate((y1_idx, y0_idx[:(20*y1_idx.shape[0])]))
 
 	# I'm doing this in order to save memory (the ideal it is not that hehe)
-	idx = np.concatenate((y1_idx, y0_idx[:(10*y1_idx.shape[0])]))
 	X_train, y_train = X_train[idx], y_train[idx]
 	
 	# Defining pipeline and params
-	rf = RandomForestClassifier(n_estimators=50, n_jobs=-1, random_state=42)
-	xgboost = xgb.XGBClassifier(max_depth=100, n_estimators=200)
+	rf = RandomForestClassifier(n_estimators=300, max_features=0.08, n_jobs=-1, random_state=seed)
 
-	pipeline = Pipeline(steps=[('xgb', xgboost)])
-	#pipeline = Pipeline(steps= [('rf',rf)])
+	xboost = xgb.XGBClassifier(max_depth=100, n_estimators=200, seed=0)
 
+	pipeline = Pipeline(steps=[('xboost', xboost)])
 	params = {
 		#"rf__max_features" : ['log2', 'sqrt', 0.08, 0.15, 0.3, 0.7, 1.0]
-		#"xgb__learning_rate" : [0.1, 0.3, 0.7, 1.0]
+		#"boost__learning_rate" : [0.1, 0.3, 0.7, 1.0]
 	}
-	cv = GridSearchCV(pipeline, params, scoring=score_mmc, cv=5, verbose=5)
+	cv = GridSearchCV(pipeline, params, scoring=score_mcc, verbose=5)
 
 	# Fitting  CV
 	cv.fit(X_train, y_train)
 	best_model = cv.best_estimator_
 
-	print(score_mmc(cv, X_test, y_test))
+	print(score_mcc(cv, X_test, y_test))
+
+
+	best_model.fit(scipy.sparse.vstack((X_train, X_test)), np.concatenate((y_train, y_test)))
 
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):
+		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
+		X_board_cat = scipy.io.mmread('../data/test_categorical')
+		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat))
+		
 		df = pd.read_csv("../data/sample_submission.csv")
-		df['Response'] = pre.predict_batch(best_model, "../data/test_numeric.csv", 200000)
+		df['Response'] = best_model.predict(X_board)
 		df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)
