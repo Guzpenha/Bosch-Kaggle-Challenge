@@ -12,7 +12,12 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from scipy.sparse import csr_matrix, hstack
 from scipy.io import mmread
+<<<<<<< HEAD
 from scipy.io import mmwrite
+=======
+import scipy
+
+>>>>>>> b6557520b49209f116eb6717276abf8dc60ee339
 import pandas as pd
 import numpy as np
 
@@ -26,7 +31,11 @@ import pandas as pd
 import numpy as np
 
 import preprocessing as pre
+<<<<<<< HEAD
 from  preprocessing import extract_missing
+=======
+from preprocessing import extract_missing
+>>>>>>> b6557520b49209f116eb6717276abf8dc60ee339
 
 import xgboost as xgb
 
@@ -63,8 +72,9 @@ if __name__ == "__main__":
 	header = next(csvreader, None)
 
 	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
-	X_train = scipy.sparse.hstack((X_train,X_date))
+	# X_train = scipy.sparse.hstack((X_train,X_date))
 	X_train = scipy.sparse.hstack((X_train,X_date2))
+
 	del X_train_cat
 	# del X_date
 	del X_date2
@@ -106,9 +116,11 @@ if __name__ == "__main__":
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = mmread('../data/test_categorical')
 		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)
+
 		# X_date2 =
 		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
-		X_board = scipy.sparse.hstack((X_board,X_board_date))		
+		X_board = scipy.sparse.hstack((X_board,X_board_date))
+		
 		del X_board_cat
 		del X_board_date
 
