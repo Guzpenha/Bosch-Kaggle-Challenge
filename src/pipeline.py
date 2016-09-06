@@ -12,7 +12,7 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from scipy.sparse import csr_matrix, hstack
 from scipy.io import mmread
-
+from scipy.io import mmwrite
 import pandas as pd
 import numpy as np
 
@@ -26,14 +26,17 @@ import pandas as pd
 import numpy as np
 
 import preprocessing as pre
+from  preprocessing import extract_missing
 
 import xgboost as xgb
 
 import csv
 from scipy import sparse
+import scipy
 
 def score_mcc(estimator, X, y):
-	return matthews_corrcoef(estimator.predict(X), y)
+	import sklearn as skl
+	return skl.metrics.matthews_corrcoef(estimator.predict(X), y)
 
 if __name__ == "__main__":
 
@@ -45,17 +48,26 @@ if __name__ == "__main__":
 	np.random.seed(seed)
 
 	# Loading datasets with i = 100000
-	X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
-	X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
+	# X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
+	# X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
+	# mmwrite('../data/train_date',X_date)
+	# mmwrite('../data/X_train',X_train)	
+	X_train = mmread('../data/X_train')
+	y_train = pre.load_labels("../data/train_numeric.csv")
+	# X_date = mmread('../data/train_date')
+	X_date2 = pre.load_date_closest_labels_percentage("../../data/train_date.csv","../../data/train_numeric.csv")
 	X_train_cat = mmread('../data/train_categorical')
 
 
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
 	header = next(csvreader, None)
 
-	X_train = scipy.sparse.hstack(((X_train, extract_missing(X_train, header[1:-1]), X_train_cat),X_date)).tocsr()
+	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
+	X_train = scipy.sparse.hstack((X_train,X_date))
+	X_train = scipy.sparse.hstack((X_train,X_date2))
 	del X_train_cat
-	del X_date
+	# del X_date
+	del X_date2
 
 	X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
@@ -94,8 +106,9 @@ if __name__ == "__main__":
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = mmread('../data/test_categorical')
 		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)
-		X_board = scipy.sparse.hstack(((X_board, extract_missing(X_board, header[1:-1]), X_board_cat),X_board_date)).tocsr()
-		
+		# X_date2 =
+		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
+		X_board = scipy.sparse.hstack((X_board,X_board_date))		
 		del X_board_cat
 		del X_board_date
 
