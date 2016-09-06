@@ -57,9 +57,10 @@ if __name__ == "__main__":
 	X_train = mmread('../data/X_train')
 	y_train = pre.load_labels("../data/train_numeric.csv")
 	# X_date = mmread('../data/train_date')
-	X_date2 = pre.load_date_closest_labels_percentage("../../data/train_date.csv","../../data/train_numeric.csv")
+	X_date2 = pre.load_date_closest_labels_percentage("../data/train_date.csv","../data/train_numeric.csv")
 	X_train_cat = mmread('../data/train_categorical')
 
+	embed()
 
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
 	header = next(csvreader, None)
