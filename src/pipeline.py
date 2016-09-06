@@ -12,12 +12,9 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from scipy.sparse import csr_matrix, hstack
 from scipy.io import mmread
-<<<<<<< HEAD
 from scipy.io import mmwrite
-=======
 import scipy
 
->>>>>>> b6557520b49209f116eb6717276abf8dc60ee339
 import pandas as pd
 import numpy as np
 
@@ -31,11 +28,7 @@ import pandas as pd
 import numpy as np
 
 import preprocessing as pre
-<<<<<<< HEAD
 from  preprocessing import extract_missing
-=======
-from preprocessing import extract_missing
->>>>>>> b6557520b49209f116eb6717276abf8dc60ee339
 
 import xgboost as xgb
 
