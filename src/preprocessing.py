@@ -59,7 +59,7 @@ def load_date_closest_labels_percentage(file_name, labels_file, closeness = 3):
 
 	labels = load_labels(labels_file)
 	print("labels loaded")
-	embed()
+	#embed()
 	for line in csvreader:
 		d = np.array(line, dtype=str)
 		c = np.where(d != '')[0]
@@ -89,7 +89,7 @@ def load_date_closest_labels_percentage(file_name, labels_file, closeness = 3):
 			# break
 
 	print("buckets counted")
-	embed()
+	#embed()
 	# Second pass in X in order to create features from buckets_counts
 	file = open(file_name)
 	csvreader = csv.reader(file)
@@ -119,12 +119,12 @@ def load_date_closest_labels_percentage(file_name, labels_file, closeness = 3):
 		values.append([total[1]/float(total[0]+total[1]), labels[i]]if (total[0]+total[1])!=0 else None)
 		i+=1
 	print("second pass made")
-	embed()
+	#embed()
 	sum_0 = reduce(lambda x, y: x+y ,[v[0] for v in values if v!=None and v[1]==0])
 	sum_1 = reduce(lambda x, y: x+y ,[v[0] for v in values if v!=None and v[1]==1])
 	print("avg 0: {}".format(sum_0/float(len([v[0] for v in values if v!=None and v[1]==0]))))
 	print("avg 1: {}".format(sum_1/float(len([v[0] for v in values if v!=None and v[1]==1]))))
-	return np.array(map(lambda x: x[0] if x else 0, values))
+	return np.array(map(lambda x: [x[0]] if x else [0], values))
 
 def load_date_features(file_name, batch = 100000):
 	file = open(file_name)
