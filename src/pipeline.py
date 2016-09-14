@@ -69,7 +69,7 @@ if __name__ == "__main__":
 	# Loading dataset with all features
 	print("Loading features")
 	X_train, y_train = load_full_dataset()		
-	embed()
+	#embed()
 
 	# Defining pipeline and params
 	xboost = xgb.XGBClassifier(seed=0)
@@ -88,10 +88,12 @@ if __name__ == "__main__":
 	
 	#Fitting custom CV with correct ratios
 	print("Running CV")
+	#embed()
+	X_train_80,X_test_20, y_train_80, y_test20 = train_test_split(X_train,y_train,test_size = 0.2, random_state = seed)
 	best_params = val.GridsearchBestRatio(X_train, y_train, pipeline, scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
-	
-	# best_model = xgb.XGBClassifier(n_estimators = 200, max_depth = best_params[1]["max_depth"],min_child_weight=best_params[1]["min_child_weight"])
-	# best_model.fit(X_train,y_train)			
+	best_model = xgb.XGBClassifier(n_estimators = best_params[1]["xboost__n_estimators"], max_depth = best_params[1]["xboost__max_depth"],min_child_weight=best_params[1]["xboost__min_child_weight"])
+	best_model.fit(X_train_80,y_train_80)
+	print(score_mcc(best_model,X_test_20,y_test20))
 
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):

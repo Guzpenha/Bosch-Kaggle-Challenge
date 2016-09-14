@@ -3,7 +3,7 @@ import numpy as np
 
 import csv
 from scipy import sparse
-
+import operator
 import re
 
 from sklearn.cross_validation import StratifiedKFold
@@ -44,4 +44,4 @@ def GridsearchBestRatio(X, y, estimator, n_iter=1, n_folds=3, fit_params={}, par
 			print(cv.best_params_)
 		best_results.append((best_score_avg/float(n_iter), cv.best_params_, ratio))
 	print(best_results)
-	return sorted(best_results, key=itemgetter(0), reverse=True)[0]
+	return sorted(best_results, key=operator.itemgetter(0), reverse=True)[0]
