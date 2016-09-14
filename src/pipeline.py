@@ -51,7 +51,7 @@ def load_full_dataset():
 	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
 	X_train = scipy.sparse.hstack((X_train,X_date))	
 
-	return X_train.tocsc(), y_train
+	return X_train, y_train
 
 def score_mcc(estimator, X, y):
 	import sklearn as skl
@@ -68,8 +68,7 @@ if __name__ == "__main__":
 
 	# Loading dataset with all features
 	print("Loading features")
-	X_train, y_train = load_full_dataset()		
-	#embed()
+	X, y = load_full_dataset()
 
 	# Defining pipeline and params
 	xboost = xgb.XGBClassifier(seed=0)
@@ -86,17 +85,31 @@ if __name__ == "__main__":
 		"xboost__n_estimators": [200]
 	}
 	
+	print("Spliting data into train and test sets")
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
+
 	#Fitting custom CV with correct ratios
 	print("Running CV")
 	#embed()
-	X_train_80,X_test_20, y_train_80, y_test20 = train_test_split(X_train,y_train,test_size = 0.2, random_state = seed)
-	best_params = val.GridsearchBestRatio(X_train, y_train, pipeline, scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
-	best_model = xgb.XGBClassifier(n_estimators = best_params[1]["xboost__n_estimators"], max_depth = best_params[1]["xboost__max_depth"],min_child_weight=best_params[1]["xboost__min_child_weight"])
-	best_model.fit(X_train_80,y_train_80)
-	print(score_mcc(best_model,X_test_20,y_test20))
+	best_params, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
+										 scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
+	
+	# set params and refit
+	pipeline.set_params(**best_params)
+	pipeline.fit(X_train[idx], y_train[idx])
+	# evalutate it
+	print(score_mcc(pipeline, X_test, y_test))
 
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):
+		# fit train + test positive instances
+		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])), np.concatenate((y_train[idx], y_test)))
+
+		# free memory
+		del X
+		del X_train
+		del X_test
+
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = mmread('../data/test_categorical')
 		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)		

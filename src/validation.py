@@ -41,7 +41,5 @@ def GridsearchBestRatio(X, y, estimator, n_iter=1, n_folds=3, fit_params={}, par
 			cv = GridSearchCV(estimator, params, cv=splits, fit_params=fit_params, scoring=scoring, verbose=verbose, refit=False)
 			cv.fit(X, y)
 			best_score_avg = best_score_avg + cv.best_score_
-			print(cv.best_params_)
 		best_results.append((best_score_avg/float(n_iter), cv.best_params_, ratio))
-	print(best_results)
-	return sorted(best_results, key=operator.itemgetter(0), reverse=True)[0]
+	return sorted(best_results, key=operator.itemgetter(0), reverse=True)[0], idx
