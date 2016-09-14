@@ -87,11 +87,8 @@ if __name__ == "__main__":
 	#Fitting custom CV with correct ratios
 	print("Running CV")
 	#embed()
-	results = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
+	best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
 										 scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
-
-	results, idx = results
-	best_score, best_params, ratio = results
 
 	# set params and refit
 	pipeline.set_params(**best_params)
@@ -119,5 +116,5 @@ if __name__ == "__main__":
 		del X_board_cat, X_board_date
 
 		df = pd.read_csv("../data/sample_submission.csv")
-		df['Response'] = best_model.predict(X_board.tocsc())
+		df['Response'] = pipeline.predict(X_board.tocsc())
 		df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)
