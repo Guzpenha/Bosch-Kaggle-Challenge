@@ -6,6 +6,8 @@ from scipy import sparse
 
 import re
 
+from sklearn.utils import check_random_state, check_array
+
 def extract_missing(X, header):
 	# removing suffix related to feature
 	# we are assuming that once the part reaches a station in a given line
@@ -395,11 +397,15 @@ class SparseOneHotEncoder(TransformerMixin):
 	def __init__(self):
 		super(SparseOneHotEncoder, self).__init__()
 	def fit(self, X, y=None):
+		# Force sparse format to be csc
+		X = check_array(X, accept_sparse="csc")
 		n_samples, n_features = X.shape
-		# count the number of passible categorical values per feature
+		# count the number of possible categorical values per feature
 		self.categories = [np.unique(X.data[X.indptr[j]:X.indptr[j+1]]) for j in np.arange(n_features)]
 		return self
 	def transform(self, X):
+		# Force sparse format to be csc
+		X = check_array(X, accept_sparse="csc")
 		n_samples, n_features = X.shape
 		count_unique_cats = [cats.shape[0] for cats in self.categories]
 		n_new_features = sum(count_unique_cats)
@@ -425,7 +431,7 @@ class SparseOneHotEncoder(TransformerMixin):
 
 if __name__ == '__main__':
 	enc = SparseOneHotEncoder()
-	X = sparse.csc_matrix([[0, 0, 3], [1, 1, 0], [0, 2, 1], [1, 0, 2], [0, 1, 3]])
+	X = sparse.csr_matrix([[0, 0, 3], [1, 1, 0], [0, 2, 1], [1, 0, 2], [0, 1, 3]])
 	enc.fit(X)
 
 	print(X.toarray())
