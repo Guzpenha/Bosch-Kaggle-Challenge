@@ -14,8 +14,7 @@ from sklearn.cross_validation import train_test_split
 import xgboost as xgb
 
 from scipy.sparse import csr_matrix, hstack
-from scipy.io import mmread
-from scipy.io import mmwrite
+from scipy.io import mmread, mmwrite
 from scipy import sparse
 import scipy
 
@@ -38,19 +37,16 @@ def load_full_dataset():
 		mmwrite('../data/X_train',X_train)		
 		mmwrite('../data/train_date',X_date)
 		# mmwrite('../data/train_categorical',X_train_cat)
-
 	else:
 		X_train = mmread('../data/X_train')
 		X_train = X_train.tocsr()
 		y_train = pre.load_labels("../data/train_numeric.csv")
 		X_date = mmread('../data/train_date')
 		X_train_cat = mmread('../data/train_categorical')
-
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
 	header = next(csvreader, None)
 	X_train = scipy.sparse.hstack((X_train, extract_missing(X_train, header[1:-1]), X_train_cat)).tocsr()
-	X_train = scipy.sparse.hstack((X_train,X_date))	
-
+	X_train = scipy.sparse.hstack((X_train,X_date)).tocsr()
 	return X_train, y_train
 
 def score_mcc(estimator, X, y):
@@ -84,16 +80,19 @@ if __name__ == "__main__":
 		"xboost__min_child_weight": [3],
 		"xboost__n_estimators": [200]
 	}
-	
+
 	print("Spliting data into train and test sets")
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
 
 	#Fitting custom CV with correct ratios
 	print("Running CV")
 	#embed()
-	best_params, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
+	results = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
 										 scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
-	
+
+	results, idx = results
+	best_score, best_params, ratio = results
+
 	# set params and refit
 	pipeline.set_params(**best_params)
 	pipeline.fit(X_train[idx], y_train[idx])
@@ -103,22 +102,22 @@ if __name__ == "__main__":
 	# Predicting test data and saving it for submission
 	if(args.make_predictions):
 		# fit train + test positive instances
-		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])), np.concatenate((y_train[idx], y_test)))
+		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])).tocsc(), np.concatenate((y_train[idx], y_test[y_test==1])))
 
 		# free memory
-		del X
-		del X_train
-		del X_test
+		del X, X_train, X_test
 
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = mmread('../data/test_categorical')
-		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)		
+		X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)
+
+		csvreader = csv.reader(open("../data/train_numeric.csv"))
+		header = next(csvreader, None)
 		X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
-		X_board = scipy.sparse.hstack((X_board,X_board_date))
+		X_board = scipy.sparse.hstack((X_board,X_board_date)).tocsr()
 		
-		del X_board_cat
-		del X_board_date
+		del X_board_cat, X_board_date
 
 		df = pd.read_csv("../data/sample_submission.csv")
-		df['Response'] = best_model.predict(X_board)
+		df['Response'] = best_model.predict(X_board.tocsc())
 		df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)

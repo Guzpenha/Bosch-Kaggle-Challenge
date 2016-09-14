@@ -16,7 +16,7 @@ def SplitCV_OriRate(X, y, n_folds=3, shuffle=False, random_state=None, ratio=0.2
 	y0_idx = np.where(y == 0)[0]
 	y1_idx = np.where(y == 1)[0]
 	random_instance.shuffle(y0_idx)
-	idx = np.concatenate((y1_idx, y0_idx[:(y1_idx.shape[0]/ratio)]))
+	idx = np.concatenate((y1_idx, y0_idx[:int(y1_idx.shape[0]/ratio)]))
 	folds = StratifiedKFold(y[idx], n_folds=n_folds, shuffle=shuffle, random_state=random_state)
 	ori_ratio = (y1_idx.shape[0]/float(y0_idx.shape[0]))
 	lista = []
@@ -26,7 +26,7 @@ def SplitCV_OriRate(X, y, n_folds=3, shuffle=False, random_state=None, ratio=0.2
 		n_sel = (n_ones/ori_ratio) - n_zeros
 		train_index = idx[train_index]
 		test_index = np.concatenate((idx[test_index],
-			random_instance.choice(y0_idx[(y1_idx.shape[0]/ratio):], size=n_sel, replace=False)))
+			random_instance.choice(y0_idx[int(y1_idx.shape[0]/ratio):], size=n_sel, replace=False)))
 		lista.append((train_index, test_index))
 	
 	return lista, idx
@@ -42,4 +42,4 @@ def GridsearchBestRatio(X, y, estimator, n_iter=1, n_folds=3, fit_params={}, par
 			cv.fit(X, y)
 			best_score_avg = best_score_avg + cv.best_score_
 		best_results.append((best_score_avg/float(n_iter), cv.best_params_, ratio))
-	return sorted(best_results, key=operator.itemgetter(0), reverse=True)[0], idx
+	return sorted(best_results, key=operator.itemgetter(0), reverse=True)[0] + idx
