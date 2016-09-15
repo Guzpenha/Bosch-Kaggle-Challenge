@@ -10,7 +10,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from sklearn.cross_validation import train_test_split
-
+from sklearn.decomposition import TruncatedSVD
+from sklearn.random_projection import GaussianRandomProjection
+from sklearn.random_projection import SparseRandomProjection
 import xgboost as xgb
 
 from scipy.sparse import csr_matrix, hstack
@@ -65,17 +67,30 @@ if __name__ == "__main__":
 	# Loading dataset with all features
 	print("Loading features")
 	X, y = load_full_dataset()
+	# embed()
 
-	# Defining pipeline and params
+	# Dimensionality reduction
+	# t_svd = TruncatedSVD(random_state=seed)	
+	# gsr = GaussianRandomProjection(random_state=seed)
+	# spr = SparseRandomProjection(random_state=seed)
+	
+	# Estimators
 	xboost = xgb.XGBClassifier(seed=0)
 	# rf = RandomForestClassifier(n_estimators=300, max_features=0.08, n_jobs=-1, random_state=seed)
+	
+	# Defining pipeline and params
+	# pipeline = Pipeline(steps=[('tsvd',t_svd),('xboost', xboost)])
+	# pipeline = Pipeline(steps=[('spr',spr),('xboost', xboost)])
 	pipeline = Pipeline(steps=[('xboost', xboost)])
 	params = {
 		#"rf__max_features" : ['log2', 'sqrt', 0.08, 0.15, 0.3, 0.7, 1.0]
 		#"xboost__learning_rate" : [0.1, 0.3, 0.7, 1.0]
 		# "xboost__max_depth": [5,8,10,12],
 		# "xboost__min_child_weight": [1,3,6],
-		# "xboost__n_estimators": [100,150,200]
+		# "xboost__n_estimators": [100,150,200]		
+		# "spr__n_components": ['auto',1000,500],
+		# "gsr__n_components": ['auto',1000,500],
+		# "tsvd__n_components": [1000,500],
 		"xboost__max_depth": [12],
 		"xboost__min_child_weight": [3],
 		"xboost__n_estimators": [200]
@@ -83,12 +98,12 @@ if __name__ == "__main__":
 
 	print("Spliting data into train and test sets")
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
+	del X, y
 
 	#Fitting custom CV with correct ratios
 	print("Running CV")
 	#embed()
-	best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline,
-										 scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
+	best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline, scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
 
 	# set params and refit
 	pipeline.set_params(**best_params)
@@ -102,7 +117,7 @@ if __name__ == "__main__":
 		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])).tocsc(), np.concatenate((y_train[idx], y_test[y_test==1])))
 
 		# free memory
-		del X, X_train, X_test
+		del X_train, X_test
 
 		X_board = pre.load_dataset("../data/test_numeric.csv", batch = 100000, no_label=True)
 		X_board_cat = mmread('../data/test_categorical')
