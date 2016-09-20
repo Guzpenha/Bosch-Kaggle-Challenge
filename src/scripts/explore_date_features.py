@@ -8,12 +8,12 @@ from IPython import embed
 from scipy.sparse import csr_matrix, hstack 
 
 # loading closest parts label
-X_date_numeric = load_dataset("../../data/train_date.csv", batch = 10000, no_label = True)
-clstLabels = TimeRangeClosestLabelsPercentage()
-clstLabels.fit(X_date_numeric)
+X_date_numeric = pre.load_dataset("../../data/train_date.csv", batch = 1000, no_label = True).tocoo()
+x,y = pre.load_dataset("../../data/train_numeric.csv", batch = 1000)
+clstLabels = pre.TimeRangeClosestLabelsPercentage("../../data/train_date.csv")
+clstLabels.fit(X_date_numeric,y)
 X_date_closest_y_ratio = clstLabels.transform(X_date_numeric,closeness = 3)
-
-
+embed()
 # print(X_date.shape)
 # embed()
 

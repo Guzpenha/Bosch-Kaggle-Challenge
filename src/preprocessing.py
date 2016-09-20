@@ -53,11 +53,11 @@ def load_labels(file_name):
 	return np.array(labels)
 
 class TimeRangeClosestLabelsPercentage(TransformerMixin):
-	def __init__(self):
-		# super(TimeRangeClosestLabelsPercentage, self).__init__()
-		file = open("../data/train_date.csv")
+	def __init__(self,file_name):
+		file = open(file_name)
 		csvreader = csv.reader(file)
 		headers = next(csvreader, None)
+		self.dim = len(headers)
 		self.no_suffix = np.array(["Id"] + [head.split("_")[0]+"_"+head.split("_")[1] for head in headers if head !="Id"])
 	def fit(self, X, y):
 		self.buckets_counts	= {}
@@ -82,14 +82,17 @@ class TimeRangeClosestLabelsPercentage(TransformerMixin):
 		new_row = []
 		for index,col,v in itertools.izip(X.row, X.col, X.data):
 			feature = str(v).split(".")[0]
+			total_0 = 0
+			total_1 = 1
 			for close_time in range(int(feature)-closeness,int(feature)+closeness):
-				if str(close_time) in buckets_counts[no_suffix[col]]:
-					new_data.append(buckets_counts[no_suffix[col]][str(close_time)][0]/ \
-						(buckets_counts[no_suffix[col]][str(close_time)][1] + buckets_counts[no_suffix[col]][str(close_time)][0]))
-					new_row.append(index)
-					new_col.append(col)									
+				if str(close_time) in self.buckets_counts[self.no_suffix[col]]:
+					total_0 += self.buckets_counts[self.no_suffix[col]][str(close_time)][0]
+					total_1 += self.buckets_counts[self.no_suffix[col]][str(close_time)][1]
+			new_data.append(float(total_1)/(total_1+total_0))
+			new_row.append(index)
+			new_col.append(col)									
 
-		result = sparse.csr_matrix((new_data, (new_row, new_col)), (len(X.row), len(X.col)))
+		result = sparse.csr_matrix((new_data, (new_row, new_col)), (max(X.row)+1, self.dim))
 		return result
 
 # def load_date_closest_labels_percentage(file_name, labels_file, closeness = 3):
@@ -321,7 +324,8 @@ def load_dataset(file_name, batch = 10000, no_label = False):
 			print(i)
 			row = 0
 			i = i + 1
-
+			#break
+			
 	if(not row == 0):
 		rows = np.concatenate(rows)
 		columns = np.concatenate(columns)
