@@ -7,14 +7,18 @@ import preprocessing as pre
 from IPython import embed
 from scipy.sparse import csr_matrix, hstack 
 
-# close parts label
-X_date = pre.load_date_closest_labels_percentage("../../data/train_date.csv","../../data/train_numeric.csv")
+# loading closest parts label
+X_date_numeric = load_dataset("../../data/train_date.csv", batch = 10000, no_label = True)
+clstLabels = TimeRangeClosestLabelsPercentage()
+clstLabels.fit(X_date_numeric)
+X_date_closest_y_ratio = clstLabels.transform(X_date_numeric,closeness = 3)
+
+
 # print(X_date.shape)
 # embed()
 
-#Reading date features
-
-# X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
+#Reading time spent in stations features
+# X_date = pre.load_time_spent_by_station_features("../../data/train_date.csv", batch = 100000)
 # print(X_date.shape)
 
 # # Reading labels

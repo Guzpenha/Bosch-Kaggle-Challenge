@@ -33,7 +33,7 @@ def load_full_dataset():
 	# If X_train.mtx have not been generated yet 
 	if( not os.path.exists('../data/X_train.mtx')):
 		X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 100000)
-		X_date = pre.load_date_features("../data/train_date.csv", batch = 100000)
+		X_date = pre.load_time_spent_by_station_features("../data/train_date.csv", batch = 100000)
 		# TO DO
 		# X_train_cat = 
 		mmwrite('../data/X_train',X_train)		
