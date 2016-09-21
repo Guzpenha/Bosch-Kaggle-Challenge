@@ -41,9 +41,9 @@ def load_full_dataset():
 		mmwrite('../data/train_date',X_date)
 		# mmwrite('../data/train_categorical',X_train_cat)
 	else:
-		X_train = mmread('../data/X_train')
-		X_train = X_train.tocsr()
-		y_train = pre.load_labels("../data/train_numeric.csv")
+		X_train, y_train = pre.load_dataset("../data/train_numeric.csv", batch = 500000)
+		#X_train = mmread('../data/X_train')
+		#y_train = pre.load_labels("../data/train_numeric.csv")
 		#X_date = mmread('../data/train_date')
 		X_train_cat = mmread('../data/train_categorical')
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
@@ -78,20 +78,20 @@ if __name__ == "__main__":
 	# spr = SparseRandomProjection(random_state=seed)
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-	del X, y
+	#del X, y
 
-	X_board = pre.load_dataset("../data/test_numeric.csv", batch = 500000, no_label=True)
-	X_board_cat = mmread('../data/test_categorical')
+	#X_board = pre.load_dataset("../data/test_numeric.csv", batch = 500000, no_label=True)
+	#X_board_cat = mmread('../data/test_categorical')
 	#X_board_date = pre.load_date_features("../data/test_date.csv", batch = 100000)
 
 	csvreader = csv.reader(open("../data/train_numeric.csv"))
 	header = next(csvreader, None)
-	X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
+	#X_board = scipy.sparse.hstack((X_board, extract_missing(X_board, header[1:-1]), X_board_cat)).tocsr()
 	#X_board = scipy.sparse.hstack((X_board,X_board_date)).tocsr()
-	
-	del X_board_cat, X_board_date
+	#del X_board_cat
+
 	random_instance = check_random_state(seed)
-	for random_seed in random_instance.randint(np.iinfo(np.int16).max, size=100):
+	for random_seed in random_instance.randint(np.iinfo(np.int16).max, size=10):
 		# Estimators
 		xboost = xgb.XGBClassifier(seed=seed)
 		# rf = RandomForestClassifier(n_estimators=300, max_features=0.08, n_jobs=-1, random_state=seed)
@@ -107,9 +107,9 @@ if __name__ == "__main__":
 			# "spr__n_components": ['auto',1000,500],
 			# "gsr__n_components": ['auto',1000,500],
 			# "tsvd__n_components": [1000,500],
-			"xboost__max_depth": [100],
-			"xboost__min_child_weight": [1],
-			"xboost__n_estimators": [200]
+			"max_depth": [100],
+			"min_child_weight": [1],
+			"n_estimators": [200]
 		}
 
 		print("Spliting data into train and test sets")
@@ -117,20 +117,22 @@ if __name__ == "__main__":
 		#Fitting custom CV with correct ratios
 		print("Running CV")
 		#embed()
-		best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(),
-		 														y_train, pipeline, scoring=score_mcc,
-		  													random_state=random_seed, verbose=5,
-		  													ratios=[0.05], params=params)
+		#best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(),
+		# 														y_train, pipeline, scoring=score_mcc,
+		#  													random_state=random_seed, verbose=5,
+		#  													ratios=[0.05], params=params)
 
+		_, idx = val.SplitCV_OriRate(X_train, y_train, random_state=random_seed, ratio=0.05)
+		print(X_train[idx])
 		# set params and refit
-		pipeline.set_params(**best_params)
-		pipeline.fit(X_train[idx], y_train[idx])
+		xboost.set_params(**params)
+		xboost.fit(X_train[idx].tocsc(), y_train[idx])
 		# evalutate it
-		print(score_mcc(pipeline, X_test, y_test))
+		print(score_mcc(xboost, X_test, y_test))
 
 		# fit train + test positive instances
-		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])).tocsc(), np.concatenate((y_train[idx], y_test[y_test==1])))
+		xboost.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])).tocsc(), np.concatenate((y_train[idx], y_test[y_test==1])))
 
 		df = pd.read_csv("../data/sample_submission.csv")
-		df['Response'] = pipeline.predict(X_board.tocsc())
-		df.to_csv(output + str(random_seed), index=False, dtype=int)
+		df['Response'] = xboost.predict(X_board.tocsc())
+		df.to_csv(args.output + str(random_seed), index=False, dtype=int)
