@@ -32,12 +32,12 @@ def SplitCV_OriRate(X, y, n_folds=3, shuffle=False, random_state=None, ratio=0.2
 	return lista, idx
 
 
-def GridsearchBestRatio(X, y, estimator, n_iter=1, n_folds=3, fit_params={}, params={}, scoring=None, ratios=[0.2, 0.05], verbose=0):
+def GridsearchBestRatio(X, y, estimator, n_iter=1, n_folds=3, fit_params={}, params={}, scoring=None, ratios=[0.2, 0.05], verbose=0, random_state=0):
 	best_results=[]
 	for ratio in ratios:
 		best_score_avg = 0
 		for i in range(int(n_iter)):
-			splits, idx = SplitCV_OriRate(X, y, n_folds, ratio=ratio, random_state=32*i)
+			splits, idx = SplitCV_OriRate(X, y, n_folds, ratio=ratio, random_state=random_state*i)
 			cv = GridSearchCV(estimator, params, cv=splits, fit_params=fit_params, scoring=scoring, verbose=verbose, refit=False)
 			cv.fit(X, y)
 			best_score_avg = best_score_avg + cv.best_score_

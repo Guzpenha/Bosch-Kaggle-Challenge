@@ -58,10 +58,13 @@ def score_mcc(estimator, X, y):
 if __name__ == "__main__":
 
 	parser = OptionParser()
-	parser.add_option("-p","--make_predictions", help="make predictions to file.",default = False)
+	#parser.add_option("-p","--make_predictions", help="make predictions to file.",default = False)
+	parser.add_option("-s","--seed", help="for reprocibility.",default = 42, type=int)
+	parser.add_option("-o","--output", help="output for submission.", default="")
 	args = parser.parse_args()[0]
 
-	seed = 42
+	print(args)
+	seed = args.seed
 	np.random.seed(seed)
 
 	# Loading dataset with all features
@@ -75,12 +78,10 @@ if __name__ == "__main__":
 	# spr = SparseRandomProjection(random_state=seed)
 	
 	# Estimators
-	xboost = xgb.XGBClassifier(seed=0)
+	xboost = xgb.XGBClassifier(seed=seed)
 	# rf = RandomForestClassifier(n_estimators=300, max_features=0.08, n_jobs=-1, random_state=seed)
 	
 	# Defining pipeline and params
-	# pipeline = Pipeline(steps=[('tsvd',t_svd),('xboost', xboost)])
-	# pipeline = Pipeline(steps=[('spr',spr),('xboost', xboost)])
 	pipeline = Pipeline(steps=[('xboost', xboost)])
 	params = {
 		#"rf__max_features" : ['log2', 'sqrt', 0.08, 0.15, 0.3, 0.7, 1.0]
@@ -91,19 +92,19 @@ if __name__ == "__main__":
 		# "spr__n_components": ['auto',1000,500],
 		# "gsr__n_components": ['auto',1000,500],
 		# "tsvd__n_components": [1000,500],
-		"xboost__max_depth": [12],
-		"xboost__min_child_weight": [3],
+		"xboost__max_depth": [100],
+		"xboost__min_child_weight": [1],
 		"xboost__n_estimators": [200]
 	}
 
 	print("Spliting data into train and test sets")
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 	del X, y
 
 	#Fitting custom CV with correct ratios
 	print("Running CV")
 	#embed()
-	best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline, scoring=score_mcc, verbose=5, ratios=[0.05], params=params)	
+	best_score, best_params, ratio, idx = val.GridsearchBestRatio(X_train.tocsc(), y_train, pipeline, scoring=score_mcc, random_state=seed, verbose=5, ratios=[0.05], params={})	
 
 	# set params and refit
 	pipeline.set_params(**best_params)
@@ -112,7 +113,7 @@ if __name__ == "__main__":
 	print(score_mcc(pipeline, X_test, y_test))
 
 	# Predicting test data and saving it for submission
-	if(args.make_predictions):
+	if(not args.output == ""):
 		# fit train + test positive instances
 		pipeline.fit(scipy.sparse.vstack((X_train[idx], X_test[y_test == 1])).tocsc(), np.concatenate((y_train[idx], y_test[y_test==1])))
 
@@ -132,4 +133,4 @@ if __name__ == "__main__":
 
 		df = pd.read_csv("../data/sample_submission.csv")
 		df['Response'] = pipeline.predict(X_board.tocsc())
-		df.to_csv("../data/submission_%s.csv" % pipeline.steps[0][0], index=False)
+		df.to_csv(output, index=False, dtype=int)
